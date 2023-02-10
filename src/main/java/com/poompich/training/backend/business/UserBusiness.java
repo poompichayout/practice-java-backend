@@ -8,7 +8,9 @@ import com.poompich.training.backend.mapper.UserMapper;
 import com.poompich.training.backend.model.MLoginRequest;
 import com.poompich.training.backend.model.MRegisterRequest;
 import com.poompich.training.backend.model.MRegisterResponse;
+import com.poompich.training.backend.service.TokenService;
 import com.poompich.training.backend.service.UserService;
+import com.poompich.training.backend.util.SecurityUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,8 +24,27 @@ import java.util.Optional;
 public class UserBusiness {
     private final UserService userService;
 
-    public UserBusiness(UserService userService) {
+    private final TokenService tokenService;
+
+    public UserBusiness(UserService userService, TokenService tokenService) {
         this.userService = userService;
+        this.tokenService = tokenService;
+    }
+
+    public String refreshToken() throws BaseException {
+        Optional<String> optUserId = SecurityUtil.getCurrentUserId();
+        if (optUserId.isEmpty()) {
+            throw UserException.unauthorized();
+        }
+
+        String userId = optUserId.get();
+        Optional<User> opt = userService.findById(userId);
+        if (opt.isEmpty()) {
+            throw UserException.notFound();
+        }
+
+        User user = opt.get();
+        return tokenService.tokenize(user);
     }
 
     public MRegisterResponse register(MRegisterRequest request) throws BaseException {
@@ -49,11 +70,7 @@ public class UserBusiness {
             throw UserException.loginFailedPasswordNotMatched();
         }
 
-        // TODO: generate JWT
-
-        String token = "JWT TODO";
-
-        return token;
+        return tokenService.tokenize(user);
     }
 
     public String uploadProfilePicture(MultipartFile file) throws BaseException {
