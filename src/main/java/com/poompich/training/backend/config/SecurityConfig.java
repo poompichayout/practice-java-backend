@@ -32,7 +32,7 @@ public class SecurityConfig {
         return http.cors().disable().csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-                .authorizeHttpRequests().requestMatchers("/user/login", "/user/register").anonymous()
+                .authorizeHttpRequests().requestMatchers("/user/login", "/user/register", "/actuator/**").anonymous()
                 .anyRequest().authenticated()
                 .and()
                 .apply(new TokenFilterConfigurer(tokenService))

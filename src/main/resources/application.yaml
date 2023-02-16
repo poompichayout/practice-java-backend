@@ -1,11 +1,24 @@
 spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${env.MAIL_USERNAME}
+    password: ${env.MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: smtp.gmail.com
   jpa:
     hibernate:
       ddl-auto: update
   datasource:
-    url: jdbc:postgresql://localhost:5432/backend
-    username: postgres
-    password: postgrespw
+    url: ${env.DB_URL}
+    username: ${env.DB_USERNAME}
+    password: ${env.DB_PASSWORD}
   servlet:
     multipart:
       enabled: true
@@ -14,5 +27,5 @@ spring:
 ---
 app:
   token:
-    secret: n#poomKodLao470
-    issuer: poompich.backend.practice
+    secret: ${env.TOKEN_SECRET}
+    issuer: ${env.TOKEN_ISSUER}
