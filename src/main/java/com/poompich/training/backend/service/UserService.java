@@ -4,9 +4,12 @@ import com.poompich.training.backend.entity.User;
 import com.poompich.training.backend.exception.BaseException;
 import com.poompich.training.backend.exception.UserException;
 import com.poompich.training.backend.repository.UserRepository;
+import com.poompich.training.backend.util.SecurityUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -35,7 +38,7 @@ public class UserService {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
-    public User create(String email, String password, String name) throws BaseException {
+    public User create(String email, String password, String name, String token, Date tokenExpiredDate) throws BaseException {
         // validate
         if (Objects.isNull(email)) {
             throw UserException.createEmailNull();
@@ -59,8 +62,14 @@ public class UserService {
         entity.setEmail(email);
         entity.setPassword(passwordEncoder.encode(password));
         entity.setName(name);
+        entity.setToken(token);
+        entity.setTokenExpired(tokenExpiredDate);
 
         return repository.save(entity);
+    }
+
+    public Optional<User> findByToken(String token) {
+        return repository.findByToken(token);
     }
 
     public User update(User user) {

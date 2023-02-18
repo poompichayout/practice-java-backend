@@ -7,10 +7,13 @@ import com.poompich.training.backend.exception.BaseException;
 import com.poompich.training.backend.service.AddressService;
 import com.poompich.training.backend.service.SocialService;
 import com.poompich.training.backend.service.UserService;
+import com.poompich.training.backend.util.SecurityUtil;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,10 +33,16 @@ class TestUserService {
     @Order(1)
     @Test
     void testCreate() throws BaseException {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MINUTE, 30);
+
         User user = userService.create(
                 TestCreateData.email,
                 TestCreateData.password,
-                TestCreateData.name);
+                TestCreateData.name,
+                SecurityUtil.generateToken(),
+                calendar.getTime()
+        );
         Assertions.assertNotNull(user);
         Assertions.assertNotNull(user.getId());
 

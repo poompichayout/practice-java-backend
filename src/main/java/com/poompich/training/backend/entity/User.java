@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.Date;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
@@ -26,4 +27,10 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "user", orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Address> addresses;
+
+    private String token;
+
+    private Date tokenExpired;
+
+    private boolean activated;
 }

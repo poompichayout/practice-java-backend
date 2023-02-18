@@ -5,20 +5,16 @@ import com.poompich.training.backend.exception.BaseException;
 import com.poompich.training.backend.exception.FileException;
 import com.poompich.training.backend.exception.UserException;
 import com.poompich.training.backend.mapper.UserMapper;
-import com.poompich.training.backend.model.MLoginRequest;
-import com.poompich.training.backend.model.MRegisterRequest;
-import com.poompich.training.backend.model.MRegisterResponse;
+import com.poompich.training.backend.model.*;
 import com.poompich.training.backend.service.TokenService;
 import com.poompich.training.backend.service.UserService;
 import com.poompich.training.backend.util.SecurityUtil;
+import io.netty.util.internal.StringUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class UserBusiness {
@@ -26,9 +22,12 @@ public class UserBusiness {
 
     private final TokenService tokenService;
 
-    public UserBusiness(UserService userService, TokenService tokenService) {
+    private final EmailBusiness emailBusiness;
+
+    public UserBusiness(UserService userService, TokenService tokenService, EmailBusiness emailBusiness) {
         this.userService = userService;
         this.tokenService = tokenService;
+        this.emailBusiness = emailBusiness;
     }
 
     public String refreshToken() throws BaseException {
@@ -48,11 +47,55 @@ public class UserBusiness {
     }
 
     public MRegisterResponse register(MRegisterRequest request) throws BaseException {
-        User user = userService.create(request.getEmail(), request.getPassword(), request.getName());
+        User user = userService.create(
+                request.getEmail(),
+                request.getPassword(),
+                request.getName(),
+                SecurityUtil.generateToken(),
+                nextXMinute(30)
+        );
+
+        sendEmail(user);
+
         return UserMapper.INSTANCE.toRegisterResponse(user);
     }
 
-    public String login(MLoginRequest request) throws BaseException {
+    private void sendEmail(User user) {
+        try {
+            emailBusiness.sendActivateUserEmail(user.getEmail(), user.getName(), user.getToken());
+        } catch (BaseException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void resendActivationEmail(MResendActivationEmailRequest request) throws BaseException {
+        String email = request.getEmail();
+        if (StringUtil.isNullOrEmpty(email)) {
+            throw UserException.resendActivationEmailNoEmail();
+        }
+
+        Optional<User> opt = userService.findByEmail(email);
+        if (opt.isEmpty()) {
+            throw UserException.resendActivationEmailUserNotFound();
+        }
+
+        User user = opt.get();
+        if (user.isActivated()) {
+            throw UserException.activateFailAlreadyActivated();
+        }
+
+        String token = SecurityUtil.generateToken();
+        Date tokenExpiredDate = nextXMinute(30);
+
+        user.setToken(token);
+        user.setTokenExpired(tokenExpiredDate);
+
+        user = userService.update(user);
+
+        sendEmail(user);
+    }
+
+    public MLoginResponse login(MLoginRequest request) throws BaseException {
         // validate request
         if (Objects.isNull(request)) {
             throw UserException.requestNull();
@@ -61,16 +104,21 @@ public class UserBusiness {
         // verify email
         Optional<User> optionalUser = userService.findByEmail(request.getEmail());
         if (optionalUser.isEmpty()) {
-            // throw login fail, email not found
             throw UserException.loginFailedEmailNotFound();
         }
         User user = optionalUser.get();
         if (!userService.matchPassword(request.getPassword(), user.getPassword())) {
-            // throw login fail, password incorrect
             throw UserException.loginFailedPasswordNotMatched();
         }
 
-        return tokenService.tokenize(user);
+        // verify activate status
+        if (!user.isActivated()) {
+            throw UserException.loginFailedUserUnactivated();
+        }
+
+        MLoginResponse response = new MLoginResponse();
+        response.setToken(tokenService.tokenize(user));
+        return response;
     }
 
     public String uploadProfilePicture(MultipartFile file) throws BaseException {
@@ -101,7 +149,46 @@ public class UserBusiness {
         }
 
         return "Success";
+    }
 
+    public MActivateResponse activate(MActivateRequest request) throws BaseException {
+        String token = request.getToken();
+        if (StringUtil.isNullOrEmpty(token)) {
+            throw UserException.activateNoToken();
+        }
+
+        Optional<User> opt = userService.findByToken(token);
+        if (opt.isEmpty()) {
+            throw UserException.activateFail();
+        }
+
+        User user = opt.get();
+        if (user.isActivated()) {
+            throw UserException.activateFail();
+        }
+
+        Date now = new Date();
+        Date expiredDate = user.getTokenExpired();
+        if (now.after(expiredDate)) {
+            // TODO: re-email
+
+            // TODO: remove user
+
+            throw UserException.activateTokenExpired();
+        }
+
+        user.setActivated(true);
+        userService.update(user);
+
+        MActivateResponse response = new MActivateResponse();
+        response.setSuccess(true);
+        return response;
+    }
+
+    private Date nextXMinute(int minute) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.MINUTE, minute);
+        return calendar.getTime();
     }
 
 }

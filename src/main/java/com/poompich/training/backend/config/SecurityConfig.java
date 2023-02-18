@@ -24,6 +24,8 @@ public class SecurityConfig {
     private final String[] PUBLIC = {
             "/user/login",
             "/user/register",
+            "/user/activate",
+            "/user/resend-activation-email",
             "/actuator/**",
             "/socket/**"
     };
