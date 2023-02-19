@@ -4,11 +4,12 @@ import com.poompich.training.backend.entity.User;
 import com.poompich.training.backend.exception.BaseException;
 import com.poompich.training.backend.exception.UserException;
 import com.poompich.training.backend.repository.UserRepository;
-import com.poompich.training.backend.util.SecurityUtil;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,6 +31,7 @@ public class UserService {
         return repository.findByEmail(email);
     }
 
+    @Cacheable(value = "user", key = "#userId", unless = "#result == null")
     public Optional<User> findById(String userId) {
         return repository.findById(userId);
     }
@@ -76,6 +78,7 @@ public class UserService {
         return repository.save(user);
     }
 
+    @CachePut(value = "user", key = "#id")
     public User updateName(String id, String name) throws BaseException {
         Optional<User> opt = repository.findById(id);
         if (opt.isEmpty()) {
@@ -88,7 +91,13 @@ public class UserService {
         return repository.save(user);
     }
 
+    @CacheEvict(value = "user", key = "#id")
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    @CacheEvict(value = "user", allEntries = true)
+    public void deleteAll() {
+        repository.deleteAll();
     }
 }

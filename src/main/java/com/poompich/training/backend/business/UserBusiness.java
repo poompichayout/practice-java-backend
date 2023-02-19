@@ -31,18 +31,7 @@ public class UserBusiness {
     }
 
     public String refreshToken() throws BaseException {
-        Optional<String> optUserId = SecurityUtil.getCurrentUserId();
-        if (optUserId.isEmpty()) {
-            throw UserException.unauthorized();
-        }
-
-        String userId = optUserId.get();
-        Optional<User> opt = userService.findById(userId);
-        if (opt.isEmpty()) {
-            throw UserException.notFound();
-        }
-
-        User user = opt.get();
+        User user = getUserFromToken();
         return tokenService.tokenize(user);
     }
 
@@ -189,6 +178,40 @@ public class UserBusiness {
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.MINUTE, minute);
         return calendar.getTime();
+    }
+
+    public MUserProfileResponse getUserProfile() throws BaseException {
+        User user = getUserFromToken();
+        return UserMapper.INSTANCE.toUserProfileResponse(user);
+    }
+
+    private User getUserFromToken() throws UserException {
+        Optional<String> optUserId = SecurityUtil.getCurrentUserId();
+        if (optUserId.isEmpty()) {
+            throw UserException.unauthorized();
+        }
+
+        String userId = optUserId.get();
+        Optional<User> opt = userService.findById(userId);
+        if (opt.isEmpty()) {
+            throw UserException.notFound();
+        }
+
+        return opt.get();
+    }
+
+    public MUserProfileResponse updateUserProfile(MUpdateUserProfileRequest request) throws BaseException {
+        if (Objects.isNull(request)) {
+            throw UserException.requestNull();
+        }
+
+        if (StringUtil.isNullOrEmpty(request.getName())) {
+            throw UserException.updateNameNull();
+        }
+
+        User user = getUserFromToken();
+        user = userService.updateName(user.getId(), request.getName());
+        return UserMapper.INSTANCE.toUserProfileResponse(user);
     }
 
 }

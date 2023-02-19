@@ -50,4 +50,15 @@ public class UserApi {
     public ResponseEntity<String> uploadProfilePicture(@RequestPart MultipartFile file) throws BaseException {
         return ResponseEntity.ok(businessService.uploadProfilePicture(file));
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<MUserProfileResponse> getUserProfile() throws BaseException {
+        return ResponseEntity.ok(businessService.getUserProfile());
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<MUserProfileResponse> updateUserProfile(@RequestBody MUpdateUserProfileRequest request) throws BaseException {
+        return ResponseEntity.ok(businessService.updateUserProfile(request));
+    }
+
 }
