@@ -1,18 +1,18 @@
 server:
-  port: 8080
+  port: ${env.PORT}
 ---
 spring:
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_HOST:${env.KAFKA_HOST}}:${KAFKA_PORT:${env.KAFKA_PORT}}
     consumer:
       group-id: "my-awesome-app"
   jpa:
     hibernate:
       ddl-auto: update
   datasource:
-    url: ${env.DB_URL}
-    username: ${env.DB_USERNAME}
-    password: ${env.DB_PASSWORD}
+    url: ${DB_URL:${env.DB_URL}}
+    username: ${DB_USERNAME:${env.DB_USERNAME}}
+    password: ${DB_PASSWORD:${env.DB_PASSWORD}}
   servlet:
     multipart:
       enabled: true
@@ -24,11 +24,11 @@ spring:
       time-to-live: 300000
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:${env.REDIS_HOST}}
+      port: ${REDIS_PORT:${env.REDIS_PORT}}
 
 ---
 app:
   token:
-    secret: ${env.TOKEN_SECRET}
-    issuer: ${env.TOKEN_ISSUER}
+    secret: ${TOKEN_SECRET:${env.TOKEN_SECRET}}
+    issuer: ${TOKEN_SECRET:${env.TOKEN_ISSUER}}
