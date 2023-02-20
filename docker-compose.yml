@@ -57,7 +57,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=backend
     volumes:
-      - "./postgresql/:/var/lib/postgresql/data/"
+      - "postgres_data:/var/lib/postgresql/data/"
     networks:
       - java-backend-services
 
@@ -78,4 +78,6 @@ volumes:
   zookeeper_data:
     driver: local
   kafka_data:
+    driver: local
+  postgres_data:
     driver: local
